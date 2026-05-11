@@ -1,0 +1,48 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Playwright / browser tooling
+.playwright-mcp/
+playwright-report/
+test-results/
+__screenshots__/
+
+# Local Claude project files
+.claude/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.history/
+
+# Logs & temp files
+*.log
+/tmp/
+tmp/
+*.bak
+*.tmp
+
+# Build artifacts (kept for future tooling)
+dist/
+build/
+node_modules/
+.cache/
+*.lock
+
+# Screenshots from local QA
+*-screenshot.png
+*-screenshot.jpeg
+v[0-9]*-*.png
+v[0-9]*-*.jpeg
+r-[0-9]*-*.png
+r-[0-9]*-*.jpeg
+
+# Environment
+.env
+.env.local
+.env.*.local
