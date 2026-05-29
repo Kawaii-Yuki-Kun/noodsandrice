@@ -495,11 +495,12 @@
   function switchPage(page) {
     adminPages.forEach(p => p.classList.toggle('is-active', p.dataset.page === page));
     sidebarBtns.forEach(b => b.classList.toggle('is-active', b.dataset.page === page));
-    // Close sidebar on mobile
     if (window.innerWidth <= 880) sidebarEl.classList.remove('is-open');
-    // Load data when switching to dishes
-    if (page === 'dishes' && currentUser) loadItems();
-    if (page === 'dashboard' && currentUser) renderDashboard();
+    if (!currentUser) return;
+    if (page === 'dashboard') {
+      loadItems().then(() => renderDashboard()).catch(() => renderDashboard());
+    }
+    if (page === 'dishes') loadItems();
   }
 
   sidebarBtns.forEach(btn => {
