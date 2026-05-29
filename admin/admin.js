@@ -497,10 +497,7 @@
     sidebarBtns.forEach(b => b.classList.toggle('is-active', b.dataset.page === page));
     if (window.innerWidth <= 880) sidebarEl.classList.remove('is-open');
     if (!currentUser) return;
-    if (page === 'dashboard') {
-      loadItems().then(() => renderDashboard()).catch(() => renderDashboard());
-    }
-    if (page === 'dishes') loadItems();
+    loadItems();
   }
 
   sidebarBtns.forEach(btn => {
@@ -511,6 +508,13 @@
     sidebarEl.classList.toggle('is-open');
   });
 
+  // Override showDashboard to load dishes by default
+  const _origShowDashboard = showDashboard;
+  showDashboard = function(user) {
+    _origShowDashboard(user);
+    setTimeout(() => loadItems(), 300);
+  };
+
   // Close sidebar when clicking outside on mobile
   document.addEventListener('click', (e) => {
     if (window.innerWidth <= 880 && sidebarEl.classList.contains('is-open')) {
@@ -519,53 +523,6 @@
       }
     }
   });
-
-  // ---------- dashboard stats ----------
-  async function renderDashboard() {
-    const grid = $('#dash-grid');
-    const cats = $('#dash-categories');
-    const sub = $('#dash-subtitle');
-
-    if (!allItems.length) {
-      sub.textContent = 'No data yet. Add some dishes first!';
-      grid.innerHTML = '';
-      cats.innerHTML = '';
-      return;
-    }
-
-    const total = allItems.length;
-    const popular = allItems.filter(i => i.popular).length;
-    const cuisines = new Set(allItems.map(i => i.cuisine).filter(Boolean));
-    const byCat = {};
-    allItems.forEach(i => {
-      const c = i.category || 'other';
-      byCat[c] = (byCat[c] || 0) + 1;
-    });
-
-    sub.textContent = `${total} dishes across ${Object.keys(byCat).length} categories`;
-
-    grid.innerHTML = `
-      <div class="dash-card"><div class="dash-card-num">${total}</div><div class="dash-card-label">Total Dishes</div></div>
-      <div class="dash-card"><div class="dash-card-num">${Object.keys(byCat).length}</div><div class="dash-card-label">Categories</div></div>
-      <div class="dash-card"><div class="dash-card-num">${popular}</div><div class="dash-card-label">Popular</div></div>
-      <div class="dash-card"><div class="dash-card-num">${cuisines.size}</div><div class="dash-card-label">Cuisines</div></div>
-    `;
-
-    cats.innerHTML = '<h3>Dishes by Category</h3>' +
-      CAT_ORDER.filter(k => byCat[k]).map(k => `
-        <div class="dash-cat-row">
-          <span>${CAT_ICON[CAT_ICON_KEY[k]] || '🍽️'} ${CAT_LABELS[k] || k}</span>
-          <span class="dash-cat-count">${byCat[k]}</span>
-        </div>
-      `).join('');
-  }
-
-  // Override showDashboard to render dashboard on first load
-  const _origShowDashboard = showDashboard;
-  showDashboard = function(user) {
-    _origShowDashboard(user);
-    setTimeout(renderDashboard, 300);
-  };
 
   // ---------- keyboard shortcut ----------
   document.addEventListener('keydown', (e) => {

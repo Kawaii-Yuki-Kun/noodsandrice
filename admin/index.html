@@ -57,11 +57,7 @@
     <!-- ===== SIDEBAR ===== -->
     <aside class="admin-sidebar" id="admin-sidebar">
       <nav class="sidebar-nav">
-        <button class="sidebar-btn is-active" data-page="dashboard">
-          <span class="sidebar-icon">📊</span>
-          <span>Dashboard</span>
-        </button>
-        <button class="sidebar-btn" data-page="dishes">
+        <button class="sidebar-btn is-active" data-page="dishes">
           <span class="sidebar-icon">🍽️</span>
           <span>Dishes</span>
         </button>
@@ -79,20 +75,8 @@
     <!-- ===== MAIN CONTENT ===== -->
     <main class="admin-main">
 
-      <!-- ── DASHBOARD PAGE ── -->
-      <section class="admin-page is-active" data-page="dashboard">
-        <div class="admin-header">
-          <div>
-            <h2 style="font-size:clamp(28px,4vw,38px);">Dashboard</h2>
-            <p style="color:var(--muted);" id="dash-subtitle">Loading…</p>
-          </div>
-        </div>
-        <div class="dash-grid" id="dash-grid"></div>
-        <div class="dash-categories" id="dash-categories"></div>
-      </section>
-
-      <!-- ── DISHES PAGE ── -->
-      <section class="admin-page" data-page="dishes">
+      <!-- ── DISHES PAGE (default) ── -->
+      <section class="admin-page is-active" data-page="dishes">
         <div class="admin-header">
           <div>
             <h2 style="font-size:clamp(28px,4vw,38px);">Menu Manager</h2>
