@@ -342,6 +342,12 @@
     $$('.menu-section', contentEl).forEach(sec => spyObserver.observe(sec));
   }
 
+  // ---------- hide preloader ----------
+  function hidePreloader() {
+    const p = $('#preloader');
+    if (p) p.classList.add('is-hidden');
+  }
+
   // ---------- initialize data (Firestore first, local fallback) ----------
   (async function initData() {
     let fromFirestore = false;
@@ -425,6 +431,7 @@
         }
       } catch (_) {}
     }
+    hidePreloader();
   })();
 
   // ---------- modal ----------
@@ -495,11 +502,22 @@
       formMsg.classList.add('is-show');
       return;
     }
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    // Get reCAPTCHA token if available
+    let recaptchaToken = '';
+    if (typeof grecaptcha !== 'undefined' && grecaptcha.execute) {
+      try { recaptchaToken = await grecaptcha.execute('YOUR_SITE_KEY', {action: 'feedback'}); } catch (_) {}
+    }
+
     try {
       await db.collection('feedback').add({
         name, email, message, topic,
         rating: ratingVal,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        recaptcha: recaptchaToken || '',
+        createdAt: new Date().toISOString()
       });
       formMsg.style.background = 'rgba(72,118,52,0.12)';
       formMsg.style.color = '#3F6D2C';
@@ -511,9 +529,11 @@
     } catch (err) {
       formMsg.style.background = 'rgba(232,80,32,0.12)';
       formMsg.style.color = '#B8421A';
-      formMsg.textContent = '⚠️ Could not send. Please try again or call us.';
+      formMsg.textContent = '⚠️ Could not send right now. Please call us or try again.';
       formMsg.classList.add('is-show');
     }
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = 'Send feedback <span class="arrow">→</span>';
   });
 
   // ---------- footer year ----------
