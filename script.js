@@ -203,6 +203,57 @@
     setupScrollSpy();
   };
 
+  // ---------- scroll arrows for category subnav ----------
+  const scrollLeftBtn = $('#scroll-left');
+  const scrollRightBtn = $('#scroll-right');
+  const catsInner = $('.menu-subnav-inner');
+
+  function updateScrollArrows() {
+    if (!catsInner || !scrollLeftBtn || !scrollRightBtn) return;
+    const atStart = catsInner.scrollLeft <= 4;
+    const atEnd = catsInner.scrollLeft >= catsInner.scrollWidth - catsInner.clientWidth - 4;
+    scrollLeftBtn.classList.toggle('is-hidden', atStart);
+    scrollRightBtn.classList.toggle('is-hidden', atEnd);
+  }
+
+  if (scrollLeftBtn && catsInner) {
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    scrollLeftBtn.addEventListener('click', () => {
+      catsInner.scrollBy({ left: -200, behavior: 'smooth' });
+    });
+    scrollRightBtn.addEventListener('click', () => {
+      catsInner.scrollBy({ left: 200, behavior: 'smooth' });
+    });
+    catsInner.addEventListener('scroll', updateScrollArrows);
+
+    function checkScrollable() {
+      if (catsInner.scrollWidth > catsInner.clientWidth) {
+        if (isTouchDevice) {
+          scrollLeftBtn.classList.add('always-visible');
+          scrollRightBtn.classList.add('always-visible');
+        } else {
+          scrollLeftBtn.classList.add('is-visible');
+          scrollRightBtn.classList.add('is-visible');
+        }
+        updateScrollArrows();
+      }
+    }
+
+    if (isTouchDevice) {
+      // On touch: always show arrows if scrollable
+      checkScrollable();
+      window.addEventListener('resize', checkScrollable);
+    } else {
+      // On desktop: show on hover
+      catsInner.addEventListener('mouseenter', checkScrollable);
+      catsInner.addEventListener('mouseleave', () => {
+        scrollLeftBtn.classList.remove('is-visible');
+        scrollRightBtn.classList.remove('is-visible');
+      });
+    }
+  }
+
   // category clicks scroll to section (no longer filter)
   catsEl.addEventListener('click', (e) => {
     const btn = e.target.closest('.cat-btn');
