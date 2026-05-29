@@ -593,6 +593,16 @@
     }
   });
 
+  // ---------- global image error fallback ----------
+  document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (img.tagName !== 'IMG') return;
+    const thumb = img.closest('.admin-item-thumb');
+    const preview = img.closest('.admin-img-preview');
+    if (thumb) { thumb.innerHTML = '🍽️'; img.style.display = 'none'; }
+    if (preview) img.style.display = 'none';
+  }, true);
+
   // ---------- keyboard shortcut ----------
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {

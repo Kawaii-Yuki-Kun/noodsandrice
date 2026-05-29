@@ -375,6 +375,25 @@
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
 
+  // ---------- global image error fallback ----------
+  document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (img.tagName !== 'IMG') return;
+    const item = img.closest('.menu-item');
+    const card = img.closest('.dish-card');
+    const modalImg = img.closest('#modal-img');
+    let catKey = '';
+    if (item) catKey = item.dataset.cat;
+    if (card) catKey = card.dataset.cat;
+    const cat = MENU_DATA[catKey];
+    const icon = (cat && CAT_PLACEHOLDER[cat.icon]) || '🍽️';
+    const size = modalImg ? '48' : '32';
+    const ph = `<span style="display:grid;place-items:center;width:100%;height:100%;font-size:${size}px;background:linear-gradient(135deg,rgba(177,111,17,0.18),rgba(42,85,99,0.08));border-radius:10px;">${icon}</span>`;
+    if (item) { img.parentNode.className = 'menu-item-img placeholder'; img.outerHTML = ph; }
+    else if (card) { img.outerHTML = ph; }
+    else if (modalImg) { img.outerHTML = ph; }
+  }, true);
+
   // ---------- feedback form ----------
   const form    = $('#feedback-form');
   const formMsg = $('#form-msg');
