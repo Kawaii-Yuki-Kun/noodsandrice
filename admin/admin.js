@@ -55,6 +55,8 @@
   const catFilter    = $('#admin-cat-filter');
   const addBtn       = $('#add-dish-btn');
   const settingsPhone= $('#admin-phone');
+  const searchInput  = $('#admin-search');
+  const paginationEl = $('#admin-pagination');
   const saveSettingsBtn = $('#save-settings-btn');
   const settingsMsg  = $('#settings-msg');
   const modal        = $('#dish-modal');
@@ -91,6 +93,9 @@
   let currentImageUrl  = null;
   let currentImageDataUrl = null;
   let currentFilter  = 'all';
+  let searchQuery   = '';
+  let currentPage   = 1;
+  const PER_PAGE    = 30;
   let deleteTargetId = null;
 
   // ---------- auth ----------
@@ -185,13 +190,23 @@
 
   // ---------- render items grouped by category ----------
   function renderItems() {
-    // Group by category, preserving CAT_ORDER
-    const groups = {};
-    const filtered = currentFilter === 'all'
-      ? allItems
-      : allItems.filter(i => i.category === currentFilter);
+    // Filter by category + search
+    const filtered = allItems.filter(i => {
+      if (currentFilter !== 'all' && i.category !== currentFilter) return false;
+      if (searchQuery && !i.name.toLowerCase().includes(searchQuery)
+        && !(i.desc && i.desc.toLowerCase().includes(searchQuery))) return false;
+      return true;
+    });
 
-    filtered.forEach(item => {
+    // Paginate
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * PER_PAGE;
+    const pageItems = filtered.slice(start, start + PER_PAGE);
+
+    // Group page items by category
+    const groups = {};
+    pageItems.forEach(item => {
       const cat = item.category || 'other';
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
@@ -213,9 +228,9 @@
         </div>
       `;
     });
-    adminItems.innerHTML = html || '<div class="admin-empty"><p style="color:var(--muted);margin:40px 0;">No items match this filter.</p></div>';
+    adminItems.innerHTML = html || '<div class="admin-empty"><p style="color:var(--muted);margin:40px 0;">No items match.</p></div>';
 
-    // Event delegation for edit/delete/add-mini buttons
+    // Event delegation
     adminItems.querySelectorAll('.admin-btn-icon[data-action="edit"]').forEach(b => {
       b.addEventListener('click', () => openEditModal(b.dataset.id));
     });
@@ -224,6 +239,29 @@
     });
     adminItems.querySelectorAll('.admin-add-mini').forEach(b => {
       b.addEventListener('click', () => openAddModal(b.dataset.cat));
+    });
+
+    // Pagination
+    if (totalPages <= 1) { paginationEl.innerHTML = ''; return; }
+    let phtml = '';
+    phtml += `<button class="page-btn" data-page="prev" ${currentPage <= 1 ? 'disabled' : ''}>‹ Prev</button>`;
+    for (let p = 1; p <= totalPages; p++) {
+      if (p === currentPage || p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2) {
+        phtml += `<button class="page-btn ${p === currentPage ? 'is-active' : ''}" data-page="${p}">${p}</button>`;
+      } else if (p === currentPage - 3 || p === currentPage + 3) {
+        phtml += `<span style="color:var(--muted);padding:0 4px;">…</span>`;
+      }
+    }
+    phtml += `<button class="page-btn" data-page="next" ${currentPage >= totalPages ? 'disabled' : ''}>Next ›</button>`;
+    paginationEl.innerHTML = phtml;
+
+    paginationEl.querySelectorAll('.page-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        if (b.dataset.page === 'prev') { if (currentPage > 1) { currentPage--; renderItems(); } }
+        else if (b.dataset.page === 'next') { if (currentPage < totalPages) { currentPage++; renderItems(); } }
+        else { currentPage = parseInt(b.dataset.page); renderItems(); }
+        adminItems.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
   }
 
@@ -266,11 +304,23 @@
     }[c]));
   }
 
+  // ---------- search ----------
+  let searchTimer;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      searchQuery = searchInput.value.trim().toLowerCase();
+      currentPage = 1;
+      renderItems();
+    }, 200);
+  });
+
   // ---------- category filter ----------
   catFilter.addEventListener('click', (e) => {
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
     currentFilter = btn.dataset.cat;
+    currentPage = 1;
     $$('.cat-btn', catFilter).forEach(b => b.classList.toggle('is-active', b.dataset.cat === currentFilter));
     renderItems();
   });
@@ -359,19 +409,38 @@
       dfImage.value = '';
       return;
     }
-    if (file.size > 1024 * 1024) {
-      dfImgName.textContent = '⚠️ Image too large. Max 1MB for base64 storage.';
+    if (file.size > 5 * 1024 * 1024) {
+      dfImgName.textContent = '⚠️ Image too large. Max 5MB.';
       dfImage.value = '';
       return;
     }
     currentImageFile = file;
     currentImageUrl = null;
+
+    // Compress image to fit Firestore's 1MB doc limit
     const reader = new FileReader();
     reader.onload = (e) => {
-      currentImageDataUrl = e.target.result;
-      dfImgPreview.innerHTML = `<img src="${currentImageDataUrl}" alt="" />`;
-      dfImgPreview.classList.add('has-image');
-      dfImgName.textContent = `📷 ${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
+      const img = new Image();
+      img.onload = () => {
+        // Resize to max 800px on longest side
+        let w = img.width, h = img.height;
+        const maxDim = 800;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = h * maxDim / w; w = maxDim; }
+          else { w = w * maxDim / h; h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        // Compress as JPEG at 80% quality
+        currentImageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        dfImgPreview.innerHTML = `<img src="${currentImageDataUrl}" alt="" />`;
+        dfImgPreview.classList.add('has-image');
+        const sizeKB = Math.round(currentImageDataUrl.length * 0.75 / 1024);
+        dfImgName.textContent = `📷 ${file.name} → ${w}×${h} (${sizeKB} KB)`;
+      };
+      img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   });

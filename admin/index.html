@@ -95,10 +95,15 @@
           <h3>No dishes yet</h3>
           <p style="color:var(--muted);">Hit "+ Add Dish" to build your menu.</p>
         </div>
+        <div class="admin-search-row">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="search" id="admin-search" placeholder="Search dishes…" />
+        </div>
         <div class="admin-cat-filter" id="admin-cat-filter">
           <button class="cat-btn is-active" data-cat="all">All</button>
         </div>
         <div id="admin-items"></div>
+        <div class="admin-pagination" id="admin-pagination"></div>
       </section>
 
       <!-- ── ORDERS PAGE ── -->
