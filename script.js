@@ -70,7 +70,24 @@
     dessert:   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11h14l-2 9H7z"/><path d="M12 11V7a2 2 0 014 0"/><path d="M12 11V7a2 2 0 00-4 0"/></svg>'
   };
 
-  const PLACEHOLDER_ICON = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5 9c2-2 5-2 7 0s5 2 7 0"/></svg>`;
+  // ---------- cuisine icons ----------
+  const CUISINE_ICONS = { japanese: '🇯🇵', korean: '🇰🇷', chinese: '🇨🇳', thai: '🇹🇭', indian: '🇮🇳' };
+  const CUISINE_LABELS = { japanese: 'Japanese', korean: 'Korean', chinese: 'Chinese', thai: 'Thai', indian: 'Indian' };
+
+  // ---------- category placeholder emojis ----------
+  const CAT_PLACEHOLDER = {
+    soup: '🍜', appetizer: '🥟', salad: '🥗', bibimbap: '🍚',
+    rice: '🍛', noodles: '🍜', sushi: '🍣',
+    extras: '➕', sides: '🍚', dips: '🫙',
+    drinks: '🥤', sake: '🍶', beer: '🍺', wine: '🍷',
+    soju: '🥃', spirits: '🥃', dessert: '🍰'
+  };
+
+  const PLACEHOLDER_ICON = (catKey) => {
+    const cat = MENU_DATA[catKey];
+    const emoji = (cat && CAT_PLACEHOLDER[cat.icon]) || '🍽️';
+    return `<span style="display:grid;place-items:center;width:100%;height:100%;font-size:32px;background:linear-gradient(135deg,rgba(177,111,17,0.18),rgba(42,85,99,0.08));border-radius:10px;">${emoji}</span>`;
+  };
 
   // ---------- badges ----------
   const itemBadges = (item, compact = false) => {
@@ -113,14 +130,18 @@
   const renderItem = (item, catKey) => {
     const imgHtml = item.img
       ? `<img src="${escape(item.img)}" alt="${escape(item.name)}" loading="lazy" />`
-      : PLACEHOLDER_ICON;
+      : PLACEHOLDER_ICON(catKey);
+    const cuisineTag = item.cuisine
+      ? `<span class="badge cuisine" data-cuisine="${item.cuisine}">${CUISINE_ICONS[item.cuisine] || ''}</span>`
+      : '';
     return `
-      <div class="menu-item" data-name="${escape(item.name.toLowerCase())}" data-desc="${escape((item.desc || '').toLowerCase())}" data-cat="${catKey}" data-idx="${escape(item.name)}">
+      <div class="menu-item" data-name="${escape(item.name.toLowerCase())}" data-desc="${escape((item.desc || '').toLowerCase())}" data-cat="${catKey}" data-idx="${escape(item.name)}" data-cuisine="${item.cuisine || ''}">
         <div class="menu-item-img ${item.img ? '' : 'placeholder'}">${imgHtml}</div>
         <div class="menu-item-body">
           <div class="menu-item-row">
             <div class="menu-item-name">
               <span>${escape(item.name)}</span>
+              ${cuisineTag}
               ${itemBadges(item, true)}
             </div>
             <div class="menu-item-price">${fmtPrice(item.price)}</div>
@@ -137,18 +158,26 @@
 
     contentEl.innerHTML = allCategoryKeys.map(k => {
       const cat = MENU_DATA[k];
-      const items = cat.items.filter(it =>
-        !q ||
-        it.name.toLowerCase().includes(q) ||
-        (it.desc && it.desc.toLowerCase().includes(q))
-      );
+      const items = cat.items.filter(it => {
+        // search filter
+        if (q && !it.name.toLowerCase().includes(q) && !(it.desc && it.desc.toLowerCase().includes(q))) return false;
+        // cuisine filter
+        if (currentCuisine !== 'all') {
+          const itemCuisine = it.cuisine || cat.cuisine || '';
+          if (itemCuisine !== currentCuisine) return false;
+        }
+        return true;
+      });
       if (!items.length) return '';
       total += items.length;
+      const catCuisine = cat.cuisine || items.find(i => i.cuisine)?.cuisine;
       return `
         <section class="menu-section" id="cat-${k}" data-cat="${k}">
           <div class="menu-section-head">
             <h3 class="menu-section-title">
-              <span class="ko">${escape(cat.titleKo)}</span>${escape(cat.title)}
+              <span class="ko">${escape(cat.titleKo)}</span>
+              ${catCuisine && CUISINE_ICONS[catCuisine] ? `<span class="cuisine-tag">${CUISINE_ICONS[catCuisine]} ${CUISINE_LABELS[catCuisine]}</span>` : ''}
+              ${escape(cat.title)}
             </h3>
             <span class="menu-section-count">${items.length} item${items.length === 1 ? '' : 's'}</span>
           </div>
@@ -193,6 +222,20 @@
     }
   });
 
+  // ---------- cuisine filter ----------
+  let currentCuisine = 'all';
+  const cuisineRow = $('#menu-cuisine-row');
+
+  if (cuisineRow) {
+    cuisineRow.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cuisine-btn');
+      if (!btn) return;
+      currentCuisine = btn.dataset.cuisine;
+      $$('.cuisine-btn', cuisineRow).forEach(b => b.classList.toggle('is-active', b.dataset.cuisine === currentCuisine));
+      renderMenu(searchEl.value);
+    });
+  }
+
   // search (debounced) — collapses sections that have no matches
   let searchTimer;
   searchEl.addEventListener('input', () => {
@@ -233,39 +276,81 @@
     $$('.menu-section', contentEl).forEach(sec => spyObserver.observe(sec));
   }
 
-  renderMenu();
+  // ---------- initialize data (Firestore first, local fallback) ----------
+  (async function initData() {
+    let fromFirestore = false;
+    try {
+      const snap = await db.collection('menu').orderBy('sort', 'asc').get();
+      const firestoreItems = {};
+      snap.forEach(doc => {
+        const d = doc.data();
+        const cat = d.category || 'other';
+        if (!firestoreItems[cat]) firestoreItems[cat] = [];
+        firestoreItems[cat].push({ ...d, id: doc.id });
+      });
 
-  // ---------- featured (homepage) ----------
-  const featuredItems = [];
-  Object.keys(MENU_DATA).forEach(k => {
-    MENU_DATA[k].items.forEach(it => {
-      if (it.popular) featuredItems.push({ ...it, _cat: k });
+      // Rebuild MENU_DATA items from Firestore
+      Object.keys(MENU_DATA).forEach(k => {
+        if (firestoreItems[k] && firestoreItems[k].length) {
+          MENU_DATA[k].items = firestoreItems[k];
+        }
+      });
+      fromFirestore = true;
+    } catch (_) {
+      // Firestore not available — data.js MENU_DATA used as-is
+    }
+
+    // Render menu with whatever data we have
+    renderMenu();
+
+    // ---------- featured (homepage) ----------
+    const featuredItems = [];
+    Object.keys(MENU_DATA).forEach(k => {
+      MENU_DATA[k].items.forEach(it => {
+        if (it.popular) featuredItems.push({ ...it, _cat: k });
+      });
     });
-  });
-  const picks = featuredItems.slice(0, 6);
+    const picks = featuredItems.slice(0, 6);
 
-  $('#featured-grid').innerHTML = picks.map(it => `
-    <div class="dish-card" data-cat="${it._cat}" data-idx="${escape(it.name)}">
-      <div class="dish-img">
-        <div class="dish-tags">${cardTags(it)}</div>
-        ${it.img ? `<img src="${escape(it.img)}" alt="${escape(it.name)}" loading="lazy" />` : ''}
-      </div>
-      <div class="dish-body">
-        <div class="dish-name">
-          <span>${escape(it.name)}</span>
-          <span class="dish-price">${fmtPrice(it.price)}</span>
+    $('#featured-grid').innerHTML = picks.map(it => `
+      <div class="dish-card" data-cat="${it._cat}" data-idx="${escape(it.name)}">
+        <div class="dish-img">
+          <div class="dish-tags">${it.cuisine ? `<span class="tag" style="background:rgba(42,85,99,0.92);color:var(--cream);">${CUISINE_ICONS[it.cuisine] || ''} ${CUISINE_LABELS[it.cuisine] || ''}</span>` : ''}${cardTags(it)}</div>
+          ${it.img ? `<img src="${escape(it.img)}" alt="${escape(it.name)}" loading="lazy" />` : ''}
         </div>
-        <p class="dish-desc">${escape(it.desc || '')}</p>
+        <div class="dish-body">
+          <div class="dish-name">
+            <span>${escape(it.name)}</span>
+            <span class="dish-price">${fmtPrice(it.price)}</span>
+          </div>
+          <p class="dish-desc">${escape(it.desc || '')}</p>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
 
-  $$('#featured-grid .dish-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const item = MENU_DATA[card.dataset.cat]?.items.find(i => i.name === card.dataset.idx);
-      if (item) openModal(item);
+    $$('#featured-grid .dish-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const item = MENU_DATA[card.dataset.cat]?.items.find(i => i.name === card.dataset.idx);
+        if (item) openModal(item);
+      });
     });
-  });
+
+    // Load phone number from Firestore settings
+    if (fromFirestore) {
+      try {
+        const settingsDoc = await db.collection('settings').doc('general').get();
+        if (settingsDoc.exists && settingsDoc.data().phone) {
+          const phone = settingsDoc.data().phone;
+          document.querySelectorAll('[data-phone]').forEach(el => {
+            el.textContent = phone;
+          });
+          document.querySelectorAll('a[href*="tel:"]').forEach(a => {
+            a.href = `tel:${phone.replace(/\s/g, '')}`;
+          });
+        }
+      } catch (_) {}
+    }
+  })();
 
   // ---------- modal ----------
   const modal = $('#dish-modal');
@@ -273,9 +358,11 @@
     $('#modal-name').textContent  = item.name;
     $('#modal-price').textContent = fmtPrice(item.price);
     $('#modal-desc').textContent  = item.desc || '';
+    // figure out which category key this item belongs to
+    const catKey = Object.keys(MENU_DATA).find(k => MENU_DATA[k].items.some(i => i.name === item.name));
     $('#modal-img').innerHTML = item.img
       ? `<img src="${escape(item.img)}" alt="${escape(item.name)}" />`
-      : `<div style="color:var(--gold-warm);background: linear-gradient(135deg, rgba(232,168,40,0.18), rgba(42,85,99,0.08)); width:100%; height:100%; display:grid; place-items:center;">${PLACEHOLDER_ICON}</div>`;
+      : `<div style="color:var(--gold-warm);background: linear-gradient(135deg, rgba(177,111,17,0.18), rgba(42,85,99,0.08)); width:100%; height:100%; display:grid; place-items:center; font-size:48px;">${CAT_PLACEHOLDER[MENU_DATA[catKey]?.icon] || '🍽️'}</div>`;
     $('#modal-tags').innerHTML = itemBadges(item, false);
     modal.classList.add('is-open');
     document.body.style.overflow = 'hidden';

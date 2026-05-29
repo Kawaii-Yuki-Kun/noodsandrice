@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seed Database · Noods N' Rice Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+Display:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../styles.css" />
+<link rel="stylesheet" href="admin.css" />
+<style>
+  .seed-log {
+    background: var(--ink);
+    color: #4ade80;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    padding: 20px;
+    border-radius: var(--radius);
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 20px;
+    line-height: 1.7;
+  }
+  .seed-log .err { color: #f87171; }
+  .seed-log .warn { color: #fbbf24; }
+</style>
+</head>
+<body>
+
+<div style="max-width:680px;margin:60px auto;padding:0 24px;">
+  <a href="index.html" style="color:var(--teal);font-size:14px;">← Back to Admin</a>
+
+  <div style="margin-top:32px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-lg);padding:40px;box-shadow:var(--shadow-md);">
+    <h2 style="font-family:var(--serif);font-size:28px;margin-bottom:8px;">🌱 Seed Database</h2>
+    <p style="color:var(--muted);margin-bottom:24px;">
+      Copy all <strong>~200 dishes</strong> from the static <code>data.js</code> file into Firestore.
+      This only needs to be done once. Existing items with the same name will be <strong>skipped</strong>.
+    </p>
+
+    <div id="seed-status" style="margin-bottom:16px;">
+      <p id="seed-auth-status" style="color:var(--muted);">Checking authentication…</p>
+    </div>
+
+    <button id="seed-btn" class="btn btn-primary" disabled style="justify-content:center;">
+      Seed Database <span class="arrow">→</span>
+    </button>
+
+    <div id="seed-log" class="seed-log" style="display:none;"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="../firebase-config.js"></script>
+<script src="../data.js"></script>
+<script>
+const $log = document.getElementById('seed-log');
+const $btn = document.getElementById('seed-btn');
+const $authStatus = document.getElementById('seed-auth-status');
+
+function log(msg, type = '') {
+  $log.style.display = 'block';
+  $log.innerHTML += `<div class="${type}">${msg}</div>`;
+  $log.scrollTop = $log.scrollHeight;
+}
+
+// Check auth
+auth.onAuthStateChanged(user => {
+  if (user) {
+    $authStatus.textContent = `✅ Authenticated as ${user.email}`;
+    $btn.disabled = false;
+  } else {
+    $authStatus.innerHTML = '⚠️ Not signed in. <a href="index.html" style="color:var(--teal);">Go to Admin →</a>';
+    $btn.disabled = true;
+  }
+});
+
+$btn.addEventListener('click', async () => {
+  $btn.disabled = true;
+  $btn.textContent = 'Seeding…';
+  $log.style.display = 'block';
+  $log.innerHTML = '';
+  log('🌱 Starting seed…');
+  log('');
+
+  if (!MENU_DATA || typeof MENU_DATA !== 'object') {
+    log('❌ data.js not found or MENU_DATA is empty.', 'err');
+    $btn.disabled = false;
+    $btn.innerHTML = 'Seed Database <span class="arrow">→</span>';
+    return;
+  }
+  log(`✅ Loaded data.js — ${Object.keys(MENU_DATA).length} categories`);
+
+  let total = 0;
+  let skipped = 0;
+  let created = 0;
+  let errors = 0;
+
+  for (const [catKey, cat] of Object.entries(MENU_DATA)) {
+    if (!cat.items || !cat.items.length) continue;
+
+    // Also save the category metadata
+    try {
+      await db.collection('menu_meta').doc(catKey).set({
+        title: cat.title,
+        titleKo: cat.titleKo || '',
+        icon: cat.icon || '',
+        cuisine: cat.cuisine || ''
+      }, { merge: true });
+    } catch (_) {}
+
+    for (const item of cat.items) {
+      total++;
+      try {
+        // Check if dish with same name already exists
+        const existing = await db.collection('menu')
+          .where('name', '==', item.name)
+          .where('category', '==', catKey)
+          .get();
+
+        if (!existing.empty) {
+          skipped++;
+          continue;
+        }
+
+        const doc = {
+          name: item.name,
+          price: item.price,
+          desc: item.desc || '',
+          category: catKey,
+          cuisine: item.cuisine || cat.cuisine || '',
+          popular: !!item.popular,
+          spicy: !!item.spicy,
+          veg: !!item.veg,
+          vegan: !!item.vegan,
+          gf: !!item.gf,
+          nuts: !!item.nuts,
+          img: item.img || '',
+          sort: Date.now() + total
+        };
+
+        await db.collection('menu').add(doc);
+        created++;
+      } catch (err) {
+        errors++;
+        log(`⚠️  ${item.name}: ${err.message}`, 'warn');
+      }
+    }
+  }
+
+  // Also seed settings
+  try {
+    await db.collection('settings').doc('general').set({
+      phone: '81 126 472'
+    }, { merge: true });
+  } catch (_) {}
+
+  log('');
+  log(`📊 Summary: ${total} total · ${created} created · ${skipped} skipped · ${errors} errors`);
+  log('✅ Seed complete!');
+  log('💡 Go back to the <a href="index.html" style="color:#4ade80;">Admin Panel</a> to manage dishes.');
+
+  $btn.disabled = true;
+  $btn.textContent = '✅ Done';
+});
+</script>
+</body>
+</html>
