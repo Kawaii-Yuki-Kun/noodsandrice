@@ -83,10 +83,25 @@
     soju: '🥃', spirits: '🥃', dessert: '🍰'
   };
 
+  const PLACEHOLDER_SVG = {
+    soup: 'assets/placeholder-dips.svg', appetizer: 'assets/placeholder-extras.svg',
+    salad: 'assets/placeholder-extras.svg', bibimbap: 'assets/placeholder-sides.svg',
+    rice: 'assets/placeholder-sides.svg', noodles: 'assets/placeholder-extras.svg',
+    sushi: 'assets/placeholder-extras.svg', extras: 'assets/placeholder-extras.svg',
+    sides: 'assets/placeholder-sides.svg', dips: 'assets/placeholder-dips.svg',
+    drinks: 'assets/placeholder-drinks.svg', sake: 'assets/placeholder-sake.svg',
+    beer: 'assets/placeholder-beer.svg', wine: 'assets/placeholder-wine.svg',
+    soju: 'assets/placeholder-soju.svg', spirits: 'assets/placeholder-spirits.svg',
+    dessert: 'assets/placeholder-extras.svg'
+  };
+
   const PLACEHOLDER_ICON = (catKey) => {
     const cat = MENU_DATA[catKey];
+    const svg = cat && PLACEHOLDER_SVG[cat.icon];
     const emoji = (cat && CAT_PLACEHOLDER[cat.icon]) || '🍽️';
-    return `<span style="display:grid;place-items:center;width:100%;height:100%;font-size:32px;background:linear-gradient(135deg,rgba(177,111,17,0.18),rgba(42,85,99,0.08));border-radius:10px;">${emoji}</span>`;
+    return svg
+      ? `<img src="${svg}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain;padding:12px;background:linear-gradient(135deg,rgba(177,111,17,0.18),rgba(42,85,99,0.08));border-radius:10px;" onerror="this.outerHTML='<span style=\\'display:grid;place-items:center;width:100%;height:100%;font-size:32px;background:linear-gradient(135deg,rgba(177,111,17,0.18),rgba(42,85,99,0.08));border-radius:10px;\\'>${emoji}</span>'" />`
+      : `<span style="display:grid;place-items:center;width:100%;height:100%;font-size:32px;background:linear-gradient(135deg,rgba(177,111,17,0.18),rgba(42,85,99,0.08));border-radius:10px;">${emoji}</span>`;
   };
 
   // ---------- badges ----------
@@ -386,18 +401,27 @@
       });
     });
 
-    // Load phone number from Firestore settings
+    // Load phone number and Instagram from Firestore settings
     if (fromFirestore) {
       try {
         const settingsDoc = await db.collection('settings').doc('general').get();
-        if (settingsDoc.exists && settingsDoc.data().phone) {
-          const phone = settingsDoc.data().phone;
-          document.querySelectorAll('[data-phone]').forEach(el => {
-            el.textContent = phone;
-          });
-          document.querySelectorAll('a[href*="tel:"]').forEach(a => {
-            a.href = `tel:${phone.replace(/\s/g, '')}`;
-          });
+        if (settingsDoc.exists) {
+          const data = settingsDoc.data();
+          if (data.phone) {
+            document.querySelectorAll('[data-phone]').forEach(el => { el.textContent = data.phone; });
+            document.querySelectorAll('a[href*="tel:"]').forEach(a => {
+              a.href = `tel:${data.phone.replace(/\s/g, '')}`;
+            });
+          }
+          if (data.instagram) {
+            // Extract handle from URL
+            const handle = data.instagram.replace(/https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '');
+            document.querySelectorAll('[data-instagram-handle]').forEach(el => { el.textContent = handle; });
+            document.querySelectorAll('[data-instagram-link]').forEach(el => { el.href = data.instagram; });
+            // Update QR code
+            const qr = document.querySelector('.insta-qr img');
+            if (qr) qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(data.instagram)}`;
+          }
         }
       } catch (_) {}
     }
@@ -458,10 +482,12 @@
     $$('button', rating).forEach(b => b.classList.toggle('is-active', +b.dataset.val <= ratingVal));
   });
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name    = $('#fb-name').value.trim();
+    const email   = $('#fb-email').value.trim();
     const message = $('#fb-message').value.trim();
+    const topic   = $('#fb-topic').value;
     if (!name || !message) {
       formMsg.style.background = 'rgba(232,80,32,0.12)';
       formMsg.style.color = '#B8421A';
@@ -469,13 +495,25 @@
       formMsg.classList.add('is-show');
       return;
     }
-    formMsg.style.background = 'rgba(72,118,52,0.12)';
-    formMsg.style.color = '#3F6D2C';
-    formMsg.textContent = `🙏 Thank you, ${name}! We've received your feedback${ratingVal ? ` (${'★'.repeat(ratingVal)})` : ''}. Expect a reply within 24 hours.`;
-    formMsg.classList.add('is-show');
-    form.reset();
-    ratingVal = 0;
-    $$('button', rating).forEach(b => b.classList.remove('is-active'));
+    try {
+      await db.collection('feedback').add({
+        name, email, message, topic,
+        rating: ratingVal,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      formMsg.style.background = 'rgba(72,118,52,0.12)';
+      formMsg.style.color = '#3F6D2C';
+      formMsg.textContent = `🙏 Thank you, ${name}! We've received your feedback${ratingVal ? ` (${'★'.repeat(ratingVal)})` : ''}. Expect a reply within 24 hours.`;
+      formMsg.classList.add('is-show');
+      form.reset();
+      ratingVal = 0;
+      $$('button', rating).forEach(b => b.classList.remove('is-active'));
+    } catch (err) {
+      formMsg.style.background = 'rgba(232,80,32,0.12)';
+      formMsg.style.color = '#B8421A';
+      formMsg.textContent = '⚠️ Could not send. Please try again or call us.';
+      formMsg.classList.add('is-show');
+    }
   });
 
   // ---------- footer year ----------

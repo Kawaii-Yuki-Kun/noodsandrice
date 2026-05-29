@@ -58,6 +58,7 @@
     <aside class="admin-sidebar" id="admin-sidebar">
       <nav class="sidebar-nav">
         <button class="sidebar-btn is-active" data-page="dishes">Dishes</button>
+        <button class="sidebar-btn" data-page="feedback">Feedback</button>
         <button class="sidebar-btn" data-page="orders">Orders</button>
         <button class="sidebar-btn" data-page="settings">Settings</button>
       </nav>
@@ -97,6 +98,26 @@
         <div class="admin-pagination" id="admin-pagination"></div>
       </section>
 
+      <!-- ── FEEDBACK PAGE ── -->
+      <section class="admin-page" data-page="feedback">
+        <div class="admin-header">
+          <div>
+            <h2 style="font-size:clamp(28px,4vw,38px);">Feedback</h2>
+            <p style="color:var(--muted);">Customer reviews from the website.</p>
+          </div>
+        </div>
+        <div id="fb-loading" class="admin-loading">
+          <div class="admin-spinner"></div>
+          <p>Loading feedback…</p>
+        </div>
+        <div id="fb-empty" class="admin-empty" style="display:none;">
+          <p style="font-size:48px;margin:0 0 14px;">💬</p>
+          <h3>No feedback yet</h3>
+          <p style="color:var(--muted);">Customer feedback will appear here once they submit from the website.</p>
+        </div>
+        <div id="fb-list"></div>
+      </section>
+
       <!-- ── ORDERS PAGE ── -->
       <section class="admin-page" data-page="orders">
         <div class="admin-header">
@@ -127,7 +148,11 @@
             <label for="admin-phone">Phone Number</label>
             <input type="text" id="admin-phone" placeholder="81 126 472" />
           </div>
-          <button class="btn btn-primary" id="save-settings-btn" style="margin-top:8px;">
+          <div class="field" style="margin-top:16px;">
+            <label for="admin-instagram">Instagram URL</label>
+            <input type="url" id="admin-instagram" placeholder="https://instagram.com/noodsnrice" />
+          </div>
+          <button class="btn btn-primary" id="save-settings-btn" style="margin-top:12px;">
             Save Settings <span class="arrow">→</span>
           </button>
           <p id="settings-msg" class="admin-msg" style="margin-top:12px;"></p>

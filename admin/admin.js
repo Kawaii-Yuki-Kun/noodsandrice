@@ -55,6 +55,7 @@
   const catFilter    = $('#admin-cat-filter');
   const addBtn       = $('#add-dish-btn');
   const settingsPhone= $('#admin-phone');
+  const settingsInsta= $('#admin-instagram');
   const searchInput  = $('#admin-search');
   const paginationEl = $('#admin-pagination');
   const saveSettingsBtn = $('#save-settings-btn');
@@ -527,14 +528,55 @@
   });
 
   // ---------- settings ----------
+  // ---------- feedback ----------
+  function loadFeedback() {
+    const fbList = $('#fb-list');
+    const fbLoading = $('#fb-loading');
+    const fbEmpty = $('#fb-empty');
+    if (!fbList) return;
+    fbLoading.style.display = 'block';
+    fbEmpty.style.display = 'none';
+    fbList.innerHTML = '';
+
+    db.collection('feedback').orderBy('createdAt', 'desc').limit(100).get()
+      .then(snap => {
+        fbLoading.style.display = 'none';
+        if (snap.empty) { fbEmpty.style.display = 'block'; return; }
+        let html = '';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const date = d.createdAt?.toDate().toLocaleDateString() || '—';
+          const stars = d.rating ? '★'.repeat(d.rating) + '☆'.repeat(5 - d.rating) : '';
+          html += `
+            <div class="fb-item">
+              <div class="fb-head">
+                <strong>${escape(d.name)}</strong>
+                <span class="fb-date">${date}</span>
+              </div>
+              ${d.email ? `<div class="fb-email">${escape(d.email)}</div>` : ''}
+              ${stars ? `<div class="fb-stars" style="color:var(--gold);">${stars}</div>` : ''}
+              ${d.topic ? `<span class="badge" style="background:rgba(42,85,99,0.1);color:var(--teal-deep);padding:2px 8px;border-radius:999px;font-size:11px;">${escape(d.topic)}</span>` : ''}
+              <p class="fb-msg">${escape(d.message)}</p>
+            </div>
+          `;
+        });
+        fbList.innerHTML = html;
+      })
+      .catch(() => {
+        fbLoading.innerHTML = '<p style="color:var(--muted);">Could not load feedback.</p>';
+      });
+  }
+
+  // ---------- settings ----------
   async function loadSettings() {
     try {
       const doc = await db.collection('settings').doc('general').get();
       if (doc.exists) {
         const data = doc.data();
         if (data.phone) settingsPhone.value = data.phone;
+        if (data.instagram) settingsInsta.value = data.instagram;
       }
-    } catch (_) { /* settings may not exist yet */ }
+    } catch (_) {}
   }
 
   saveSettingsBtn.addEventListener('click', async () => {
@@ -543,9 +585,10 @@
     saveSettingsBtn.textContent = 'Saving…';
     try {
       await db.collection('settings').doc('general').set({
-        phone: settingsPhone.value.trim()
+        phone: settingsPhone.value.trim(),
+        instagram: settingsInsta.value.trim()
       }, { merge: true });
-      settingsMsg.textContent = '✅ Phone number saved!';
+      settingsMsg.textContent = '✅ Settings saved!';
       settingsMsg.className = 'admin-msg admin-msg-success is-show';
     } catch (err) {
       settingsMsg.textContent = `❌ ${err.message}`;
@@ -566,7 +609,9 @@
     sidebarBtns.forEach(b => b.classList.toggle('is-active', b.dataset.page === page));
     if (window.innerWidth <= 880) sidebarEl.classList.remove('is-open');
     if (!currentUser) return;
-    loadItems();
+    if (page === 'dishes') loadItems();
+    if (page === 'feedback') loadFeedback();
+    if (page === 'settings') loadSettings();
   }
 
   sidebarBtns.forEach(btn => {
