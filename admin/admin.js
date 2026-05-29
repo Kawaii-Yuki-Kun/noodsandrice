@@ -191,7 +191,6 @@
 
   // ---------- render items grouped by category ----------
   function renderItems() {
-    // Filter by category + search
     const filtered = allItems.filter(i => {
       if (currentFilter !== 'all' && i.category !== currentFilter) return false;
       if (searchQuery && !i.name.toLowerCase().includes(searchQuery)
@@ -199,39 +198,21 @@
       return true;
     });
 
-    // Paginate
     const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
     if (currentPage > totalPages) currentPage = totalPages;
     const start = (currentPage - 1) * PER_PAGE;
     const pageItems = filtered.slice(start, start + PER_PAGE);
 
-    // Group page items by category
-    const groups = {};
-    pageItems.forEach(item => {
-      const cat = item.category || 'other';
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(item);
-    });
+    // Flat list with category badge on each row
+    let html = pageItems.map(item => renderItemRow(item, true)).join('') +
+      '<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">' +
+      [...new Set(pageItems.map(i => i.category).filter(Boolean))].map(cat =>
+        `<button class="admin-add-mini" data-cat="${cat}" style="font-size:12px;">+ Add to ${CAT_LABELS[cat] || cat}</button>`
+      ).join('') +
+      '</div>';
 
-    let html = '';
-    CAT_ORDER.forEach(cat => {
-      if (!groups[cat] || !groups[cat].length) return;
-      const iconKey = CAT_ICON_KEY[cat] || 'sushi';
-      const emoji = CAT_ICON[iconKey] || '🍽️';
-      html += `
-        <div class="admin-cat-group" data-cat="${cat}">
-          <div class="admin-cat-head">
-            <h3>${emoji} ${CAT_LABELS[cat] || cat}</h3>
-            <span class="admin-cat-count">${groups[cat].length} item${groups[cat].length !== 1 ? 's' : ''}</span>
-          </div>
-          ${groups[cat].map(item => renderItemRow(item)).join('')}
-          <button class="admin-add-mini" data-cat="${cat}" style="margin-top:8px;">+ Add to ${CAT_LABELS[cat] || cat}</button>
-        </div>
-      `;
-    });
     adminItems.innerHTML = html || '<div class="admin-empty"><p style="color:var(--muted);margin:40px 0;">No items match.</p></div>';
 
-    // Event delegation
     adminItems.querySelectorAll('.admin-btn-icon[data-action="edit"]').forEach(b => {
       b.addEventListener('click', () => openEditModal(b.dataset.id));
     });
@@ -266,7 +247,7 @@
     });
   }
 
-  function renderItemRow(item) {
+  function renderItemRow(item, showCategory) {
     const cuisine = item.cuisine ? (CUISINE_LABELS[item.cuisine] || '') : '';
     const badges = [];
     if (item.popular) badges.push('⭐');
@@ -276,6 +257,7 @@
     if (item.gf)      badges.push('🌾');
     if (item.nuts)    badges.push('🥜');
     const badgeStr = badges.join(' ');
+    const catBadge = showCategory ? `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:rgba(42,85,99,0.12);color:var(--teal-deep);margin-right:6px;">${CAT_ICON[CAT_ICON_KEY[item.category]] || ''} ${CAT_LABELS[item.category] || item.category}</span>` : '';
 
     return `
       <div class="admin-item">
@@ -284,6 +266,7 @@
         </div>
         <div class="admin-item-info">
           <div class="admin-item-name">
+            ${catBadge}
             <span>${escape(item.name)}</span>
             ${cuisine ? `<span style="font-size:12px;">${cuisine}</span>` : ''}
             ${badgeStr ? `<span style="font-size:12px;">${badgeStr}</span>` : ''}
