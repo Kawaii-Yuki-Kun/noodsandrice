@@ -1483,7 +1483,7 @@ body::before {
 
 /* ---------- footer ---------- */
 .footer {
-  background: var(--teal-deep);
+  background: var(--teal);
   color: var(--cream);
   padding-top: 70px;
   padding-bottom: 30px;

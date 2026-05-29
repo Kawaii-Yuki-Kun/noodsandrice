@@ -96,9 +96,9 @@
 .sidebar-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 16px;
-  border-radius: 12px;
+  gap: 10px;
+  padding: 11px 18px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   color: var(--ink-soft);
@@ -110,14 +110,12 @@
   width: 100%;
   position: relative;
 }
-.sidebar-btn:hover { background: rgba(42,85,99,0.07); color: var(--ink); transform: translateX(2px); }
+.sidebar-btn:hover { background: rgba(42,85,99,0.07); color: var(--ink); }
 .sidebar-btn.is-active {
-  background: linear-gradient(135deg, var(--teal) 0%, var(--teal-deep) 100%);
+  background: var(--teal);
   color: var(--cream);
-  box-shadow: 0 4px 14px rgba(42,85,99,0.25);
-  transform: translateX(0);
+  box-shadow: 0 2px 8px rgba(42,85,99,0.2);
 }
-.sidebar-icon { font-size: 18px; width: 26px; text-align: center; flex-shrink: 0; }
 
 /* ---------- pages ---------- */
 .admin-page { display: none; }
@@ -189,18 +187,41 @@
 .page-btn.is-active { background: var(--teal); color: var(--cream); border-color: var(--teal); }
 .page-btn:disabled { opacity: 0.4; cursor: default; }
 
-/* ---------- category filter ---------- */
+/* ---------- category tabs ---------- */
 .admin-cat-filter {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 36px;
-  padding: 14px 18px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin-bottom: 32px;
+  border-bottom: 2px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0;
 }
-.admin-cat-filter .cat-btn { cursor: pointer; }
+.admin-cat-filter::-webkit-scrollbar { display: none; }
+.admin-cat-filter .cat-btn {
+  cursor: pointer;
+  flex: 0 0 auto;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all .15s var(--ease);
+  white-space: nowrap;
+}
+.admin-cat-filter .cat-btn:hover { color: var(--ink); background: rgba(42,85,99,0.04); }
+.admin-cat-filter .cat-btn.is-active {
+  color: var(--teal);
+  font-weight: 600;
+  border-bottom-color: var(--teal);
+  background: transparent;
+  box-shadow: none;
+}
 
 /* ---------- category groups ---------- */
 .admin-cat-group { margin-bottom: 44px; }
@@ -226,7 +247,7 @@
 .admin-add-mini {
   font-size: 12px;
   padding: 8px 16px;
-  border-radius: 999px;
+  border-radius: 6px;
   background: var(--teal);
   color: var(--cream);
   font-weight: 600;
