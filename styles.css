@@ -725,7 +725,6 @@ body::before {
   transition: transform .5s var(--ease);
 }
 .highlight:hover {
-  transform: translateY(-6px);
   box-shadow: var(--shadow-md);
   border-color: rgba(42,85,99,0.2);
 }
@@ -772,7 +771,6 @@ body::before {
   position: relative;
 }
 .dish-card:hover {
-  transform: translateY(-8px);
   box-shadow: var(--shadow-lg);
 }
 .dish-img {
@@ -817,7 +815,7 @@ body::before {
 .tag.spicy   { background: rgba(232,80,32,0.92); color: var(--cream); }
 .tag.veg     { background: rgba(72,118,52,0.92); color: var(--cream); }
 .tag.vegan   { background: rgba(58,104,40,0.92); color: var(--cream); }
-.tag.popular { background: var(--gold); color: var(--ink); }
+.tag.popular { background: #F2B934; color: var(--ink); }
 .tag.gf      { background: rgba(42,85,99,0.92); color: var(--cream); }
 .tag.nuts    { background: rgba(140,90,30,0.92); color: var(--cream); }
 .dish-body { padding: 22px; }
@@ -1022,7 +1020,6 @@ body::before {
   cursor: pointer;
 }
 .menu-item:hover {
-  transform: translateY(-3px);
   box-shadow: var(--shadow-md);
   border-color: rgba(42,85,99,0.18);
 }
@@ -1090,7 +1087,7 @@ body::before {
 .badge.spicy   { background: rgba(232,80,32,0.13);  color: #B8421A; }
 .badge.veg     { background: rgba(72,118,52,0.13);  color: #3F6D2C; }
 .badge.vegan   { background: rgba(58,104,40,0.15);  color: #2E5B1F; }
-.badge.popular { background: rgba(177,111,17,0.20); color: #7a5520; }
+.badge.popular { background: rgba(242,185,52,0.25); color: #8C6B2F; }
 .badge.gf      { background: rgba(42,85,99,0.15);   color: var(--teal-deep); }
 .badge.nuts    { background: rgba(140,90,30,0.13);  color: #6E441A; }
 .badge.cuisine { background: transparent; font-size: 12px; padding: 0 2px; }
@@ -1246,7 +1243,7 @@ body::before {
   text-align: center;
   transition: transform .3s var(--ease), box-shadow .3s var(--ease);
 }
-.value:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.value:hover { box-shadow: var(--shadow-md); }
 .value-num {
   font-family: var(--korean);
   font-size: 42px;

@@ -268,7 +268,7 @@
   function renderItemRow(item) {
     const cuisine = item.cuisine ? (CUISINE_LABELS[item.cuisine] || '') : '';
     const badges = [];
-    if (item.popular) badges.push('★');
+    if (item.popular) badges.push('⭐');
     if (item.spicy)   badges.push('🌶');
     if (item.veg && !item.vegan) badges.push('🌿');
     if (item.vegan)   badges.push('🌱');

@@ -235,7 +235,7 @@
   transition: all .2s var(--ease);
   white-space: nowrap;
 }
-.admin-add-mini:hover { background: var(--teal-deep); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(42,85,99,0.25); }
+.admin-add-mini:hover { background: var(--teal-deep); box-shadow: 0 4px 10px rgba(42,85,99,0.25); }
 
 /* ---------- item rows ---------- */
 .admin-item {
@@ -252,7 +252,6 @@
 .admin-item:hover {
   border-color: rgba(42,85,99,0.2);
   box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
 }
 .admin-item-thumb {
   width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0;
