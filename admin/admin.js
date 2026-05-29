@@ -511,7 +511,6 @@
     deleteConfirm.textContent = 'Delete';
   });
 
-  // ---------- settings ----------
   // ---------- feedback ----------
   function loadFeedback() {
     const fbList = $('#fb-list');
@@ -522,6 +521,13 @@
     fbEmpty.style.display = 'none';
     fbList.innerHTML = '';
 
+    function formatDate(v) {
+      if (!v) return '—';
+      if (typeof v === 'string') return new Date(v).toLocaleDateString();
+      if (v.toDate) return v.toDate().toLocaleDateString();
+      return '—';
+    }
+
     db.collection('feedback').orderBy('createdAt', 'desc').limit(100).get()
       .then(snap => {
         fbLoading.style.display = 'none';
@@ -529,7 +535,7 @@
         let html = '';
         snap.forEach(doc => {
           const d = doc.data();
-          const date = d.createdAt?.toDate().toLocaleDateString() || '—';
+          const date = formatDate(d.createdAt);
           const stars = d.rating ? '★'.repeat(d.rating) + '☆'.repeat(5 - d.rating) : '';
           html += `
             <div class="fb-item">
