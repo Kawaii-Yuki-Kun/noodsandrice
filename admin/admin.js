@@ -255,11 +255,14 @@
     const catBadge = showCategory ? `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:rgba(42,85,99,0.12);color:var(--teal-deep);margin-right:6px;">${CAT_ICON[CAT_ICON_KEY[item.category]] || ''} ${CAT_LABELS[item.category] || item.category}</span>` : '';
 
     const fallbackIcon = CAT_ICON[CAT_ICON_KEY[item.category]] || '🍽️';
+    // Skip relative paths (assets/...) that don't exist on server
+    const imgSrc = item.img || '';
+    const showImg = imgSrc && !imgSrc.startsWith('assets/') && !imgSrc.startsWith('./assets/');
     return `
       <div class="admin-item">
         <div class="admin-item-thumb">
-          ${item.img
-            ? `<img src="${escape(item.img)}" alt="" onerror="this.onerror=null;var p=this.parentNode;p.innerHTML='${fallbackIcon}';p.style.fontSize='22px'" />`
+          ${showImg
+            ? `<img src="${escape(imgSrc)}" alt="" onerror="this.onerror=null;var p=this.parentNode;p.innerHTML='${fallbackIcon}';p.style.fontSize='22px'" />`
             : fallbackIcon}
         </div>
         <div class="admin-item-info">
