@@ -149,6 +149,15 @@
 .fb-date { font-size: 11px; color: var(--muted); white-space: nowrap; }
 .fb-email { font-size: 12px; color: var(--muted); width: 100%; }
 .fb-stars { font-size: 13px; flex-shrink: 0; }
+.fb-del {
+  width: 26px; height: 26px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--cream);
+  cursor: pointer; font-size: 12px; color: var(--muted);
+  display: grid; place-items: center;
+  margin-left: auto; flex-shrink: 0;
+  transition: all .15s var(--ease);
+}
+.fb-del:hover { background: var(--red); color: #fff; border-color: var(--red); }
 .fb-msg {
   width: 100%;
   font-size: 13px;

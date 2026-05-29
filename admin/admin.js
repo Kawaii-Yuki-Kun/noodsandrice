@@ -542,15 +542,25 @@
               <div class="fb-head">
                 <strong>${escape(d.name)}</strong>
                 <span class="fb-date">${date}</span>
+                ${stars ? `<span class="fb-stars" style="color:var(--gold);">${stars}</span>` : ''}
+                <button class="fb-del" data-fbid="${doc.id}" title="Delete feedback">✕</button>
               </div>
               ${d.email ? `<div class="fb-email">${escape(d.email)}</div>` : ''}
-              ${stars ? `<div class="fb-stars" style="color:var(--gold);">${stars}</div>` : ''}
               ${d.topic ? `<span class="badge" style="background:rgba(42,85,99,0.1);color:var(--teal-deep);padding:2px 8px;border-radius:999px;font-size:11px;">${escape(d.topic)}</span>` : ''}
               <p class="fb-msg">${escape(d.message)}</p>
             </div>
           `;
         });
         fbList.innerHTML = html;
+        fbList.querySelectorAll('.fb-del').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('Delete this feedback?')) return;
+            try {
+              await db.collection('feedback').doc(btn.dataset.fbid).delete();
+              loadFeedback();
+            } catch (_) { alert('Could not delete.'); }
+          });
+        });
       })
       .catch(() => {
         fbLoading.innerHTML = '<p style="color:var(--muted);">Could not load feedback.</p>';
