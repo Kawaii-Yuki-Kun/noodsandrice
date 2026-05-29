@@ -204,12 +204,7 @@
     const pageItems = filtered.slice(start, start + PER_PAGE);
 
     // Flat list with category badge on each row
-    let html = pageItems.map(item => renderItemRow(item, true)).join('') +
-      '<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">' +
-      [...new Set(pageItems.map(i => i.category).filter(Boolean))].map(cat =>
-        `<button class="admin-add-mini" data-cat="${cat}" style="font-size:12px;">+ Add to ${CAT_LABELS[cat] || cat}</button>`
-      ).join('') +
-      '</div>';
+    let html = pageItems.map(item => renderItemRow(item, true)).join('');
 
     adminItems.innerHTML = html || '<div class="admin-empty"><p style="color:var(--muted);margin:40px 0;">No items match.</p></div>';
 
@@ -259,10 +254,13 @@
     const badgeStr = badges.join(' ');
     const catBadge = showCategory ? `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:rgba(42,85,99,0.12);color:var(--teal-deep);margin-right:6px;">${CAT_ICON[CAT_ICON_KEY[item.category]] || ''} ${CAT_LABELS[item.category] || item.category}</span>` : '';
 
+    const fallbackIcon = CAT_ICON[CAT_ICON_KEY[item.category]] || '🍽️';
     return `
       <div class="admin-item">
         <div class="admin-item-thumb">
-          ${item.img ? `<img src="${escape(item.img)}" alt="" />` : (CAT_ICON[CAT_ICON_KEY[item.category]] || '🍽️')}
+          ${item.img
+            ? `<img src="${escape(item.img)}" alt="" onerror="this.onerror=null;var p=this.parentNode;p.innerHTML='${fallbackIcon}';p.style.fontSize='22px'" />`
+            : fallbackIcon}
         </div>
         <div class="admin-item-info">
           <div class="admin-item-name">
